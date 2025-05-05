@@ -84,9 +84,45 @@ def get_model(protocol):
         'tcp': TcpTarget
     }.get(protocol.lower())
 
+# Custom 404 error handler
+@app.errorhandler(404)
+def not_found(e):
+    # If requesting an API endpoint, return JSON
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'error': 'Route not found',
+            'message': 'The requested API endpoint does not exist. Please check the documentation for valid endpoints.',
+            'available_endpoints': {
+                'GET': [
+                    '/api/targets/<protocol>',
+                    '/api/targets/<protocol>/details',
+                    '/api/targets/<protocol>/<id>',
+                    '/api/export/prometheus'
+                ],
+                'POST': ['/api/targets/<protocol>'],
+                'PUT': [
+                    '/api/targets/<protocol>/<id>',
+                    '/api/targets/batch/status'
+                ],
+                'DELETE': [
+                    '/api/targets/<protocol>/<id>',
+                    '/api/targets/batch/delete'
+                ]
+            }
+        }), 404
+    
+    # For non-API routes (frontend), redirect to home
+    return render_template('index.html')
+
 # Main page
 @app.route('/')
 def index():
+    return render_template('index.html')
+
+# Handle legacy route (/targets) to properly redirect
+@app.route('/targets')
+def legacy_targets():
+    # Redirect to main page
     return render_template('index.html')
 
 # API to get all targets for a protocol
@@ -321,6 +357,18 @@ def export_prometheus():
         all_targets[protocol] = targets
     
     return jsonify(all_targets)
+
+# Global exception handler
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the error
+    app.logger.error(f"Unhandled exception: {str(e)}")
+    
+    # Return JSON response for all exceptions
+    return jsonify({
+        'error': 'Internal server error',
+        'message': str(e)
+    }), 500
 
 if __name__ == '__main__':
     # Make sure templates directory exists
