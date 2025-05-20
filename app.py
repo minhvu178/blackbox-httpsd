@@ -294,7 +294,15 @@ def add_header(response):
         if not response.headers.get('Content-Type'):
             # Set Content-Type for API responses if not already set
             response.headers['Content-Type'] = 'application/json'
-    return response# Add dedicated endpoints for Prometheus service discovery
+    return response# Helper function to get the model based on protocol
+def get_model(protocol):
+    return {
+        'http': HttpTarget,
+        'icmp': IcmpTarget,
+        'tcp': TcpTarget
+    }.get(protocol.lower())
+
+# Add dedicated endpoints for Prometheus service discovery
 @app.route('/api/sd/<protocol>', methods=['GET'])
 def prometheus_sd(protocol):
     """Endpoint specifically for Prometheus service discovery"""
@@ -315,7 +323,7 @@ def prometheus_sd(protocol):
             "labels": {
                 "id": str(entry.id),
                 "hostname": entry.hostname,
-                "module": entry.probe_type.lower(),
+                "module": entry.probe_type.lower() if hasattr(entry, 'probe_type') else protocol,
                 "region": entry.region,
                 "assignees": entry.assignees,
                 "job": f"blackbox_{protocol}"
