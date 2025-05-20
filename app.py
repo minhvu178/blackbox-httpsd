@@ -1,43 +1,4 @@
-@app.after_request
-def add_header(response):
-    """Ensure API responses have the correct content type header"""
-    if request.path.startswith('/api/'):
-        # Only modify if it's an API endpoint
-        if not response.headers.get('Content-Type'):
-            # Set Content-Type for API responses if not already set
-            response.headers['Content-Type'] = 'application/json'
-    return response# Add dedicated endpoints for Prometheus service discovery
-@app.route('/api/sd/<protocol>', methods=['GET'])
-def prometheus_sd(protocol):
-    """Endpoint specifically for Prometheus service discovery"""
-    model = get_model(protocol)
-    if model is None:
-        return jsonify([]), 200  # Return empty array with 200 status
-    
-    entries = model.query.filter_by(enabled=True).all()
-    
-    result = []
-    for entry in entries:
-        target_address = entry.address
-        if protocol == 'tcp' and entry.port:
-            target_address = f"{entry.address}:{entry.port}"
-            
-        item = {
-            "targets": [target_address],
-            "labels": {
-                "id": str(entry.id),
-                "hostname": entry.hostname,
-                "module": entry.probe_type.lower(),
-                "region": entry.region,
-                "assignees": entry.assignees,
-                "job": f"blackbox_{protocol}"
-            }
-        }
-        result.append(item)
-    
-    response = jsonify(result)
-    response.headers['Content-Type'] = 'application/json'
-    return responsefrom flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, and_, text, func
 import re
@@ -324,6 +285,47 @@ def update_target(target_id):
     db.session.commit()
     
     return jsonify({'message': 'Target updated successfully'})
+
+@app.after_request
+def add_header(response):
+    """Ensure API responses have the correct content type header"""
+    if request.path.startswith('/api/'):
+        # Only modify if it's an API endpoint
+        if not response.headers.get('Content-Type'):
+            # Set Content-Type for API responses if not already set
+            response.headers['Content-Type'] = 'application/json'
+    return response# Add dedicated endpoints for Prometheus service discovery
+@app.route('/api/sd/<protocol>', methods=['GET'])
+def prometheus_sd(protocol):
+    """Endpoint specifically for Prometheus service discovery"""
+    model = get_model(protocol)
+    if model is None:
+        return jsonify([]), 200  # Return empty array with 200 status
+    
+    entries = model.query.filter_by(enabled=True).all()
+    
+    result = []
+    for entry in entries:
+        target_address = entry.address
+        if protocol == 'tcp' and entry.port:
+            target_address = f"{entry.address}:{entry.port}"
+            
+        item = {
+            "targets": [target_address],
+            "labels": {
+                "id": str(entry.id),
+                "hostname": entry.hostname,
+                "module": entry.probe_type.lower(),
+                "region": entry.region,
+                "assignees": entry.assignees,
+                "job": f"blackbox_{protocol}"
+            }
+        }
+        result.append(item)
+    
+    response = jsonify(result)
+    response.headers['Content-Type'] = 'application/json'
+    return response
 
 @app.route('/api/targets/<int:target_id>', methods=['DELETE'])
 def delete_target(target_id):
