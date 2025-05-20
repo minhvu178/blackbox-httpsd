@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackbox Target Manager</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 220px;
+            --sidebar-width-collapsed: 60px;
+            --primary-color: #3498db;
+            --secondary-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        #sidebar {
+            position: fixed;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background-color: #2c3e50;
+            color: white;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        #sidebar.collapsed {
+            width: var(--sidebar-width-collapsed);
+        }
+        
+        #sidebar .sidebar-header {
+            padding: 20px;
+            background-color: #1a252f;
+        }
+        
+        #sidebar ul.components {
+            padding: 20px 0;
+        }
+        
+        #sidebar ul li a {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        #sidebar ul li a:hover {
+            background-color: #34495e;
+        }
+        
+        #sidebar ul li.active > a {
+            background-color: #3498db;
+        }
+        
+        #sidebar .sidebar-item-text {
+            margin-left: 10px;
+            transition: opacity 0.3s;
+        }
+        
+        #sidebar.collapsed .sidebar-item-text {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+        }
+        
+        #content {
+            margin-left: var(--sidebar-width);
+            padding: 20px;
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+        
+        #content.expanded {
+            margin-left: var(--sidebar-width-collapsed);
+        }
+        
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-enabled {
+            background-color: var(--success-color);
+        }
+        
+        .status-disabled {
+            background-color: var(--danger-color);
+        }
+        
+        .search-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            padding: 8px 15px;
+        }
+        
+        .action-btn {
+            margin-left: 5px;
+            border-radius: 4px;
+        }
+        
+        table {
+            background-color: white;
+            border-radius: 8px;
+        }
+        
+        table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid var(--border-color);
+            color: #495057;
+        }
+        
+        table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .modal-content {
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+            background-color: #f8f9fa;
+        }
+        
+        .hamburger-btn {
+            cursor: pointer;
+            font-size: 24px;
+            color: white;
+            background: none;
+            border: none;
+        }
+        
+        .dropdown-item:active {
+            background-color: var(--primary-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Custom checkbox styling */
+        .custom-checkbox {
+            position: relative;
+            padding-left: 30px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .custom-checkbox input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 20px;
+            width: 20px;
+            background-color: #eee;
+            border-radius: 3px;
+        }
+
+        .custom-checkbox:hover input ~ .checkmark {
+            background-color: #ccc;
+        }
+
+        .custom-checkbox input:checked ~ .checkmark {
+            background-color: var(--primary-color);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .custom-checkbox input:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        .custom-checkbox .checkmark:after {
+            left: 7px;
+            top: 3px;
+            width: 6px;
+            height: 12px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <div class="sidebar-header d-flex justify-content-between align-items-center">
+            <h5 class="m-0" id="sidebar-title">Blackbox Manager</h5>
+            <button class="hamburger-btn" id="sidebar-toggler">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <ul class="list-unstyled components">
+            <li class="active">
+                <a href="#">
+                    <i class="fas fa-crosshairs"></i>
+                    <span class="sidebar-item-text">Target</span>
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="fas fa-satellite-dish"></i>
+                    <span class="sidebar-item-text">Probe</span>
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="fas fa-route"></i>
+                    <span class="sidebar-item-text">Trace</span>
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="sidebar-item-text">Speed Test</span>
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="fas fa-tasks"></i>
+                    <span class="sidebar-item-text">Job</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Search Container -->
+        <div class="search-container mb-4">
+            <div class="input-group">
+                <input type="text" class="form-control search-input" placeholder="Search">
+                <button class="btn btn-primary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Target Dashboard -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="m-0">Target Dashboard</h5>
+                <div>
+                    <input type="text" class="form-control" placeholder="Search Target (label=AAA, name=AAA)" style="width: 300px; display: inline-block;">
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="d-flex justify-content-between p-3 border-bottom">
+                    <div>
+                        <button class="btn btn-primary btn-sm" id="addTargetBtn">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger btn-sm action-btn" id="deleteSelectedBtn" disabled>
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                        <button class="btn btn-warning btn-sm action-btn" disabled>
+                            <i class="fas fa-edit"></i> Edit Selected
+                        </button>
+                        <button class="btn btn-success btn-sm action-btn" disabled>
+                            <i class="fas fa-check-circle"></i> Enable Selected
+                        </button>
+                        <button class="btn btn-secondary btn-sm action-btn" disabled>
+                            <i class="fas fa-ban"></i> Disable Selected
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th width="40">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                    </div>
+                                </th>
+                                <th>Hostname</th>
+                                <th>Region</th>
+                                <th>Zone</th>
+                                <th>Probe Type</th>
+                                <th>Assignees</th>
+                                <th>Status</th>
+                                <th>Probe Status</th>
+                                <th>Status Code</th>
+                                <th width="120">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="targetsList">
+                            <!-- Sample data rows -->
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input target-checkbox" type="checkbox">
+                                    </div>
+                                </td>
+                                <td>webserver1.example.com</td>
+                                <td>US-East</td>
+                                <td>us-east-1</td>
+                                <td>HTTP</td>
+                                <td>team-network</td>
+                                <td>
+                                    <span class="status-indicator status-enabled"></span>
+                                    Enabled
+                                </td>
+                                <td><span class="badge bg-success">UP</span></td>
+                                <td>200</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input target-checkbox" type="checkbox">
+                                    </div>
+                                </td>
+                                <td>dbserver1.example.com</td>
+                                <td>US-West</td>
+                                <td>us-west-1</td>
+                                <td>TCP</td>
+                                <td>team-db</td>
+                                <td>
+                                    <span class="status-indicator status-enabled"></span>
+                                    Enabled
+                                </td>
+                                <td><span class="badge bg-success">UP</span></td>
+                                <td>N/A</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input target-checkbox" type="checkbox">
+                                    </div>
+                                </td>
+                                <td>router1.example.com</td>
+                                <td>Asia</td>
+                                <td>asia-east-1</td>
+                                <td>ICMP</td>
+                                <td>team-network</td>
+                                <td>
+                                    <span class="status-indicator status-disabled"></span>
+                                    Disabled
+                                </td>
+                                <td><span class="badge bg-secondary">N/A</span></td>
+                                <td>N/A</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Target Modal -->
+    <div class="modal fade" id="addTargetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Target</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addTargetForm">
+                        <div class="mb-3">
+                            <label for="add-hostname" class="form-label">Hostname</label>
+                            <input type="text" class="form-control" id="add-hostname" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-region" class="form-label">Region</label>
+                            <select class="form-select" id="add-region" required>
+                                <option value="">Select Region</option>
+                                <option value="International Domestic">International Domestic</option>
+                                <option value="US-East">US-East</option>
+                                <option value="US-West">US-West</option>
+                                <option value="EU">EU</option>
+                                <option value="Asia">Asia</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-zone" class="form-label">Zone</label>
+                            <select class="form-select" id="add-zone" required>
+                                <option value="">Select Zone</option>
+                                <option value="International Domestic">International Domestic</option>
+                                <option value="us-east-1">us-east-1</option>
+                                <option value="us-west-1">us-west-1</option>
+                                <option value="eu-central-1">eu-central-1</option>
+                                <option value="asia-east-1">asia-east-1</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-module-type" class="form-label">Module Type</label>
+                            <select class="form-select" id="add-module-type" required>
+                                <option value="">Select Module Type</option>
+                                <option value="HTTP_2xx">HTTP_2xx</option>
+                                <option value="HTTP_4xx">HTTP_4xx</option>
+                                <option value="IMCP">ICMP</option>
+                                <option value="TCP">TCP</option>
+                                <option value="Defacement">Defacement</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-probes" class="form-label">Probes</label>
+                            <select class="form-select" id="add-probes">
+                                <option value="Singapore, USA, KOREA / Viettel, FCI, CMC">Singapore, USA, KOREA / Viettel, FCI, CMC</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-assignees" class="form-label">Assignees</label>
+                            <input type="text" class="form-control" id="add-assignees" placeholder="team, method">
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="add-enabled" checked>
+                            <label class="form-check-label" for="add-enabled">Enabled</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveAddButton">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Target Modal -->
+    <div class="modal fade" id="editTargetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Target</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editTargetForm">
+                        <input type="hidden" id="edit-id">
+                        <div class="mb-3">
+                            <label for="edit-hostname" class="form-label">Hostname</label>
+                            <input type="text" class="form-control" id="edit-hostname" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-region" class="form-label">Region</label>
+                            <select class="form-select" id="edit-region" required>
+                                <option value="">Region selection</option>
+                                <option value="International Domestic">International Domestic</option>
+                                <option value="US-East">US-East</option>
+                                <option value="US-West">US-West</option>
+                                <option value="EU">EU</option>
+                                <option value="Asia">Asia</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-zone" class="form-label">Zone</label>
+                            <select class="form-select" id="edit-zone" required>
+                                <option value="">International Domestic selection</option>
+                                <option value="International Domestic">International Domestic</option>
+                                <option value="us-east-1">us-east-1</option>
+                                <option value="us-west-1">us-west-1</option>
+                                <option value="eu-central-1">eu-central-1</option>
+                                <option value="asia-east-1">asia-east-1</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-module-type" class="form-label">Module Type</label>
+                            <select class="form-select" id="edit-module-type" required>
+                                <option value="HTTP_2xx,HTTP_4xx,IMCP,TCP,Defacement">HTTP_2xx,HTTP_4xx,IMCP,TCP,Defacement</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-probes" class="form-label">Probes</label>
+                            <select class="form-select" id="edit-probes">
+                                <option value="Singapore, USA, KOREA / Viettel, FCI, CMC">Singapore, USA, KOREA / Viettel, FCI, CMC</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-assignees" class="form-label">Assignees</label>
+                            <input type="text" class="form-control" id="edit-assignees" placeholder="team, method">
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="edit-enabled">
+                            <label class="form-check-label" for="edit-enabled">Enabled</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveEditButton">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete target pop-up</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Delete these targets:</p>
+                    <ul id="delete-targets-list">
+                        <li>fpt.ai</li>
+                        <li>fptcloud.vn</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteButton">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle sidebar
+        document.getElementById('sidebar-toggler').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.getElementById('content').classList.toggle('expanded');
+            
+            if (document.getElementById('sidebar').classList.contains('collapsed')) {
+                document.getElementById('sidebar-title').style.display = 'none';
+            } else {
+                document.getElementById('sidebar-title').style.display = 'block';
+            }
+        });
+
+        // Select all checkboxes
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.target-checkbox');
+            for (const checkbox of checkboxes) {
+                checkbox.checked = this.checked;
+            }
+            updateActionButtonsState();
+        });
+
+        // Individual checkbox change
+        document.querySelectorAll('.target-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateActionButtonsState);
+        });
+
+        // Update action buttons state
+        function updateActionButtonsState() {
+            const checkedCount = document.querySelectorAll('.target-checkbox:checked').length;
+            const actionButtons = document.querySelectorAll('.action-btn');
+            
+            actionButtons.forEach(button => {
+                button.disabled = checkedCount === 0;
+            });
+        }
+
+        // Initialize modals
+        const addTargetModal = new bootstrap.Modal(document.getElementById('addTargetModal'));
+        const editTargetModal = new bootstrap.Modal(document.getElementById('editTargetModal'));
+        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+
+        // Add target button
+        document.getElementById('addTargetBtn').addEventListener('click', function() {
+            addTargetModal.show();
+        });
+
+        // Edit target buttons
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // In a real implementation, you would fetch the target data from the API
+                // For now, we'll just show the modal with default values
+                editTargetModal.show();
+            });
+        });
+
+        // Delete target buttons
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update the delete confirmation modal with the target hostname
+                const hostname = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+                document.getElementById('delete-targets-list').innerHTML = `<li>${hostname}</li>`;
+                deleteConfirmModal.show();
+            });
+        });
+
+        // Delete selected button
+        document.getElementById('deleteSelectedBtn').addEventListener('click', function() {
+            // Get all selected targets
+            const selectedTargets = [];
+            document.querySelectorAll('.target-checkbox:checked').forEach(checkbox => {
+                const hostname = checkbox.closest('tr').querySelector('td:nth-child(2)').textContent;
+                selectedTargets.push(hostname);
+            });
+            
+            // Update the delete confirmation modal with all selected targets
+            const deleteList = document.getElementById('delete-targets-list');
+            deleteList.innerHTML = '';
+            selectedTargets.forEach(hostname => {
+                const li = document.createElement('li');
+                li.textContent = hostname;
+                deleteList.appendChild(li);
+            });
+            
+            deleteConfirmModal.show();
+        });
+
+        // Save add target button
+        document.getElementById('saveAddButton').addEventListener('click', function() {
+            // In a real implementation, you would send the form data to the API
+            // For now, we'll just close the modal and show an alert
+            addTargetModal.hide();
+            alert('Target added successfully!');
+        });
+
+        // Save edit target button
+        document.getElementById('saveEditButton').addEventListener('click', function() {
+            // In a real implementation, you would send the form data to the API
+            // For now, we'll just close the modal and show an alert
+            editTargetModal.hide();
+            alert('Target updated successfully!');
+        });
+
+        // Confirm delete button
+        document.getElementById('confirmDeleteButton').addEventListener('click', function() {
+            // In a real implementation, you would send the delete request to the API
+            // For now, we'll just close the modal and show an alert
+            deleteConfirmModal.hide();
+            alert('Target(s) deleted successfully!');
+        });
+    </script>
+</body>
+</html>
