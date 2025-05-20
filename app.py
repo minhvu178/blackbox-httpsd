@@ -342,6 +342,34 @@ def get_probes():
     probes = Probe.query.all()
     return jsonify([probe.to_dict() for probe in probes])
 
+@app.route('/api/export/prometheus', methods=['GET'])
+def export_prometheus():
+    """Export targets in Prometheus HTTP SD format"""
+    # Get all enabled targets
+    targets = Target.query.filter_by(enabled=True).all()
+    
+    result = []
+    for target in targets:
+        # For each target, create a format that Prometheus HTTP SD expects
+        target_entry = {
+            "targets": [target.address],
+            "labels": {
+                "hostname": target.hostname,
+                "region": target.region,
+                "zone": target.zone,
+                "module": target.probe_type.lower(),  # Convert to lowercase for module name
+                "assignees": target.assignees
+            }
+        }
+        
+        # Add port for TCP targets
+        if target.probe_type == "TCP" and target.port:
+            target_entry["targets"] = [f"{target.address}:{target.port}"]
+        
+        result.append(target_entry)
+    
+    return jsonify(result)
+
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
     # Count total targets
