@@ -23,7 +23,7 @@
             background-color: #f5f5f5;
         }
         
-        #sidebar {
+        .sidebar {
             position: fixed;
             width: var(--sidebar-width);
             height: 100vh;
@@ -33,20 +33,20 @@
             z-index: 1000;
         }
         
-        #sidebar.collapsed {
+        .sidebar.collapsed {
             width: var(--sidebar-width-collapsed);
         }
         
-        #sidebar .sidebar-header {
+        .sidebar .sidebar-header {
             padding: 20px;
             background-color: #1a252f;
         }
         
-        #sidebar ul.components {
+        .sidebar ul.components {
             padding: 20px 0;
         }
         
-        #sidebar ul li a {
+        .sidebar ul li a {
             padding: 15px;
             display: flex;
             align-items: center;
@@ -55,20 +55,20 @@
             transition: all 0.3s;
         }
         
-        #sidebar ul li a:hover {
+        .sidebar ul li a:hover {
             background-color: #34495e;
         }
         
-        #sidebar ul li.active > a {
+        .sidebar ul li.active > a {
             background-color: #3498db;
         }
         
-        #sidebar .sidebar-item-text {
+        .sidebar .sidebar-item-text {
             margin-left: 10px;
             transition: opacity 0.3s;
         }
         
-        #sidebar.collapsed .sidebar-item-text {
+        .sidebar.collapsed .sidebar-item-text {
             opacity: 0;
             width: 0;
             height: 0;
@@ -186,65 +186,11 @@
             background-color: var(--primary-color);
             color: white;
         }
-
-        /* Custom checkbox styling */
-        .custom-checkbox {
-            position: relative;
-            padding-left: 30px;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .custom-checkbox input {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-            height: 0;
-            width: 0;
-        }
-
-        .checkmark {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 20px;
-            width: 20px;
-            background-color: #eee;
-            border-radius: 3px;
-        }
-
-        .custom-checkbox:hover input ~ .checkmark {
-            background-color: #ccc;
-        }
-
-        .custom-checkbox input:checked ~ .checkmark {
-            background-color: var(--primary-color);
-        }
-
-        .checkmark:after {
-            content: "";
-            position: absolute;
-            display: none;
-        }
-
-        .custom-checkbox input:checked ~ .checkmark:after {
-            display: block;
-        }
-
-        .custom-checkbox .checkmark:after {
-            left: 7px;
-            top: 3px;
-            width: 6px;
-            height: 12px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
-        }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
-    <nav id="sidebar">
+    <nav class="sidebar">
         <div class="sidebar-header d-flex justify-content-between align-items-center">
             <h5 class="m-0" id="sidebar-title">Blackbox Manager</h5>
             <button class="hamburger-btn" id="sidebar-toggler">
@@ -317,13 +263,13 @@
                         <button class="btn btn-danger btn-sm action-btn" id="deleteSelectedBtn" disabled>
                             <i class="fas fa-trash"></i> Delete Selected
                         </button>
-                        <button class="btn btn-warning btn-sm action-btn" disabled>
+                        <button class="btn btn-warning btn-sm action-btn" id="editSelectedBtn" disabled>
                             <i class="fas fa-edit"></i> Edit Selected
                         </button>
-                        <button class="btn btn-success btn-sm action-btn" disabled>
+                        <button class="btn btn-success btn-sm action-btn" id="enableSelected" disabled>
                             <i class="fas fa-check-circle"></i> Enable Selected
                         </button>
-                        <button class="btn btn-secondary btn-sm action-btn" disabled>
+                        <button class="btn btn-secondary btn-sm action-btn" id="disableSelected" disabled>
                             <i class="fas fa-ban"></i> Disable Selected
                         </button>
                     </div>
@@ -349,84 +295,9 @@
                             </tr>
                         </thead>
                         <tbody id="targetsList">
-                            <!-- Sample data rows -->
+                            <!-- Target data will be loaded dynamically -->
                             <tr>
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input target-checkbox" type="checkbox">
-                                    </div>
-                                </td>
-                                <td>webserver1.example.com</td>
-                                <td>US-East</td>
-                                <td>us-east-1</td>
-                                <td>HTTP</td>
-                                <td>team-network</td>
-                                <td>
-                                    <span class="status-indicator status-enabled"></span>
-                                    Enabled
-                                </td>
-                                <td><span class="badge bg-success">UP</span></td>
-                                <td>200</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-btn">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-btn">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input target-checkbox" type="checkbox">
-                                    </div>
-                                </td>
-                                <td>dbserver1.example.com</td>
-                                <td>US-West</td>
-                                <td>us-west-1</td>
-                                <td>TCP</td>
-                                <td>team-db</td>
-                                <td>
-                                    <span class="status-indicator status-enabled"></span>
-                                    Enabled
-                                </td>
-                                <td><span class="badge bg-success">UP</span></td>
-                                <td>N/A</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-btn">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-btn">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input target-checkbox" type="checkbox">
-                                    </div>
-                                </td>
-                                <td>router1.example.com</td>
-                                <td>Asia</td>
-                                <td>asia-east-1</td>
-                                <td>ICMP</td>
-                                <td>team-network</td>
-                                <td>
-                                    <span class="status-indicator status-disabled"></span>
-                                    Disabled
-                                </td>
-                                <td><span class="badge bg-secondary">N/A</span></td>
-                                <td>N/A</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary edit-btn">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-btn">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
+                                <td colspan="10" class="text-center py-3">Loading targets...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -475,22 +346,15 @@
                             <label for="add-module-type" class="form-label">Module Type</label>
                             <select class="form-select" id="add-module-type" required>
                                 <option value="">Select Module Type</option>
-                                <option value="HTTP_2xx">HTTP_2xx</option>
-                                <option value="HTTP_4xx">HTTP_4xx</option>
-                                <option value="IMCP">ICMP</option>
+                                <option value="HTTP">HTTP</option>
+                                <option value="ICMP">ICMP</option>
                                 <option value="TCP">TCP</option>
                                 <option value="Defacement">Defacement</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="add-probes" class="form-label">Probes</label>
-                            <select class="form-select" id="add-probes">
-                                <option value="Singapore, USA, KOREA / Viettel, FCI, CMC">Singapore, USA, KOREA / Viettel, FCI, CMC</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
                             <label for="add-assignees" class="form-label">Assignees</label>
-                            <input type="text" class="form-control" id="add-assignees" placeholder="team, method">
+                            <input type="text" class="form-control" id="add-assignees" placeholder="team, method" required>
                         </div>
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="add-enabled" checked>
@@ -500,7 +364,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveAddButton">Save Changes</button>
+                    <button type="button" class="btn btn-primary" id="saveAddButton">Save</button>
                 </div>
             </div>
         </div>
@@ -546,18 +410,15 @@
                         <div class="mb-3">
                             <label for="edit-module-type" class="form-label">Module Type</label>
                             <select class="form-select" id="edit-module-type" required>
-                                <option value="HTTP_2xx,HTTP_4xx,IMCP,TCP,Defacement">HTTP_2xx,HTTP_4xx,IMCP,TCP,Defacement</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit-probes" class="form-label">Probes</label>
-                            <select class="form-select" id="edit-probes">
-                                <option value="Singapore, USA, KOREA / Viettel, FCI, CMC">Singapore, USA, KOREA / Viettel, FCI, CMC</option>
+                                <option value="HTTP">HTTP</option>
+                                <option value="ICMP">ICMP</option>
+                                <option value="TCP">TCP</option>
+                                <option value="Defacement">Defacement</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="edit-assignees" class="form-label">Assignees</label>
-                            <input type="text" class="form-control" id="edit-assignees" placeholder="team, method">
+                            <input type="text" class="form-control" id="edit-assignees" placeholder="team, method" required>
                         </div>
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="edit-enabled">
@@ -584,8 +445,7 @@
                 <div class="modal-body">
                     <p>Delete these targets:</p>
                     <ul id="delete-targets-list">
-                        <li>fpt.ai</li>
-                        <li>fptcloud.vn</li>
+                        <!-- Target list will be populated dynamically -->
                     </ul>
                 </div>
                 <div class="modal-footer">
@@ -596,8 +456,26 @@
         </div>
     </div>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom application JavaScript -->
+    
+    <!-- Custom JS -->
     <script src="/static/js/app.js"></script>
+    
+    <script>
+        // Log initialization to debug issues
+        console.log('Document loaded: modernUI.html');
+        
+        // Print out the elements to debug
+        window.addEventListener('load', function() {
+            console.log('Window loaded, checking elements:');
+            console.log('Sidebar:', document.querySelector('.sidebar'));
+            console.log('Add button:', document.getElementById('addTargetBtn'));
+            console.log('Delete selected button:', document.getElementById('deleteSelectedBtn'));
+            console.log('Enable selected button:', document.getElementById('enableSelected'));
+            console.log('Disable selected button:', document.getElementById('disableSelected'));
+            console.log('Add modal:', document.getElementById('addTargetModal'));
+        });
+    </script>
 </body>
 </html>

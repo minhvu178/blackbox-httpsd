@@ -9,7 +9,7 @@ let probes = [];
 let selectedTargetIds = [];
 
 // DOM Elements
-const sidebar = document.getElementById('sidebar');
+const sidebar = document.querySelector('.sidebar');
 const content = document.getElementById('content');
 const sidebarToggler = document.getElementById('sidebar-toggler');
 const selectAllCheckbox = document.getElementById('selectAll');
@@ -18,16 +18,37 @@ const searchInput = document.querySelector('.search-input');
 const targetSearchInput = document.querySelector('input[placeholder="Search Target (label=AAA, name=AAA)"]');
 const addTargetBtn = document.getElementById('addTargetBtn');
 const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-const enableSelectedBtn = document.getElementById('enableSelected');
-const disableSelectedBtn = document.getElementById('disableSelected');
+
+// These buttons might have different IDs or class names based on the actual rendered HTML
+// We'll check if they exist before adding event listeners
+const enableSelectedBtn = document.querySelector('button[id="enableSelected"], button.btn-success');
+const disableSelectedBtn = document.querySelector('button[id="disableSelected"], button.btn-secondary');
 
 // Modal elements
-const addTargetModal = new bootstrap.Modal(document.getElementById('addTargetModal'));
-const editTargetModal = new bootstrap.Modal(document.getElementById('editTargetModal'));
-const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-const saveAddButton = document.getElementById('saveAddButton');
-const saveEditButton = document.getElementById('saveEditButton');
-const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+let addTargetModal, editTargetModal, deleteConfirmModal;
+let saveAddButton, saveEditButton, confirmDeleteButton;
+
+// Initialize modals if they exist
+function initModals() {
+    const addTargetModalElement = document.getElementById('addTargetModal');
+    const editTargetModalElement = document.getElementById('editTargetModal');
+    const deleteConfirmModalElement = document.getElementById('deleteConfirmModal');
+    
+    if (addTargetModalElement) {
+        addTargetModal = new bootstrap.Modal(addTargetModalElement);
+        saveAddButton = document.getElementById('saveAddButton');
+    }
+    
+    if (editTargetModalElement) {
+        editTargetModal = new bootstrap.Modal(editTargetModalElement);
+        saveEditButton = document.getElementById('saveEditButton');
+    }
+    
+    if (deleteConfirmModalElement) {
+        deleteConfirmModal = new bootstrap.Modal(deleteConfirmModalElement);
+        confirmDeleteButton = document.getElementById('confirmDeleteButton');
+    }
+}
 
 // Polling interval
 let pollingInterval = null;
@@ -35,61 +56,119 @@ const POLL_INTERVAL = 60000; // 1 minute
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', async function() {
-    // Toggle sidebar
-    sidebarToggler.addEventListener('click', toggleSidebar);
+    console.log('DOM loaded, initializing application...');
+    
+    // Initialize modals
+    initModals();
+    
+    // Toggle sidebar if elements exist
+    if (sidebarToggler && sidebar && content) {
+        sidebarToggler.addEventListener('click', toggleSidebar);
+    }
     
     // Initialize event listeners
     initEventListeners();
     
-    // Load data
-    await Promise.all([
-        loadProbes(),
-        loadTargets()
-    ]);
-    
-    // Start polling for updates
-    startPolling();
+    try {
+        // Load data
+        await Promise.all([
+            loadProbes(),
+            loadTargets()
+        ]);
+        
+        // Start polling for updates
+        startPolling();
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
 });
 
 // Initialize all event listeners
 function initEventListeners() {
     // Select all checkbox
-    selectAllCheckbox.addEventListener('change', handleSelectAll);
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', handleSelectAll);
+    }
     
     // Search inputs
-    searchInput.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') {
-            searchTargets(this.value);
-        }
-    });
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                searchTargets(this.value);
+            }
+        });
+    }
     
-    targetSearchInput.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') {
-            searchTargets(this.value);
-        }
-    });
+    if (targetSearchInput) {
+        targetSearchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                searchTargets(this.value);
+            }
+        });
+    }
     
     // Batch operation buttons
-    deleteSelectedBtn.addEventListener('click', () => showDeleteConfirmation(selectedTargetIds));
-    enableSelectedBtn.addEventListener('click', () => batchUpdateTargets('enable'));
-    disableSelectedBtn.addEventListener('click', () => batchUpdateTargets('disable'));
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', () => showDeleteConfirmation(selectedTargetIds));
+    }
+    
+    if (enableSelectedBtn) {
+        enableSelectedBtn.addEventListener('click', () => batchUpdateTargets('enable'));
+    }
+    
+    if (disableSelectedBtn) {
+        disableSelectedBtn.addEventListener('click', () => batchUpdateTargets('disable'));
+    }
     
     // Modal action buttons
-    addTargetBtn.addEventListener('click', showAddTargetModal);
-    saveAddButton.addEventListener('click', handleAddTarget);
-    saveEditButton.addEventListener('click', handleEditTarget);
-    confirmDeleteButton.addEventListener('click', handleDeleteConfirmed);
+    if (addTargetBtn) {
+        addTargetBtn.addEventListener('click', showAddTargetModal);
+    }
+    
+    if (saveAddButton) {
+        saveAddButton.addEventListener('click', handleAddTarget);
+    }
+    
+    if (saveEditButton) {
+        saveEditButton.addEventListener('click', handleEditTarget);
+    }
+    
+    if (confirmDeleteButton) {
+        confirmDeleteButton.addEventListener('click', handleDeleteConfirmed);
+    }
+    
+    // Try to find action buttons by class or text content if IDs aren't available
+    const actionButtons = document.querySelectorAll('.btn');
+    actionButtons.forEach(button => {
+        const buttonText = button.textContent.trim().toLowerCase();
+        if (buttonText.includes('enable') && !enableSelectedBtn) {
+            button.addEventListener('click', () => batchUpdateTargets('enable'));
+        } else if (buttonText.includes('disable') && !disableSelectedBtn) {
+            button.addEventListener('click', () => batchUpdateTargets('disable'));
+        } else if (buttonText.includes('delete selected') && !deleteSelectedBtn) {
+            button.addEventListener('click', () => showDeleteConfirmation(selectedTargetIds));
+        } else if (buttonText.includes('add') && !addTargetBtn) {
+            button.addEventListener('click', showAddTargetModal);
+        }
+    });
 }
 
 // Toggle sidebar visibility
 function toggleSidebar() {
-    sidebar.classList.toggle('collapsed');
-    content.classList.toggle('expanded');
-    
-    if (sidebar.classList.contains('collapsed')) {
-        document.getElementById('sidebar-title').style.display = 'none';
+    if (sidebar && content) {
+        sidebar.classList.toggle('collapsed');
+        content.classList.toggle('expanded');
+        
+        const sidebarTitle = document.getElementById('sidebar-title');
+        if (sidebarTitle) {
+            if (sidebar.classList.contains('collapsed')) {
+                sidebarTitle.style.display = 'none';
+            } else {
+                sidebarTitle.style.display = 'block';
+            }
+        }
     } else {
-        document.getElementById('sidebar-title').style.display = 'block';
+        console.error('Sidebar or content elements not found');
     }
 }
 
@@ -110,9 +189,29 @@ function updateSelectedTargets() {
     });
     
     const hasSelected = selectedTargetIds.length > 0;
-    deleteSelectedBtn.disabled = !hasSelected;
-    enableSelectedBtn.disabled = !hasSelected;
-    disableSelectedBtn.disabled = !hasSelected;
+    
+    // Update button states if they exist
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.disabled = !hasSelected;
+    }
+    
+    if (enableSelectedBtn) {
+        enableSelectedBtn.disabled = !hasSelected;
+    }
+    
+    if (disableSelectedBtn) {
+        disableSelectedBtn.disabled = !hasSelected;
+    }
+    
+    // Try to find buttons by class if IDs aren't available
+    document.querySelectorAll('.btn').forEach(button => {
+        const buttonText = button.textContent.trim().toLowerCase();
+        if (buttonText.includes('delete selected') || 
+            buttonText.includes('enable selected') || 
+            buttonText.includes('disable selected')) {
+            button.disabled = !hasSelected;
+        }
+    });
 }
 
 // Render targets list
@@ -201,13 +300,105 @@ function attachTargetActionListeners() {
 
 // Show add target modal
 function showAddTargetModal() {
-    // Reset form
-    document.getElementById('addTargetForm').reset();
+    console.log('Showing add target modal');
+    
+    // Check if the modal exists
+    if (!addTargetModal) {
+        console.error('Add target modal not found. Creating a fallback modal.');
+        
+        // Create a modal dynamically if it doesn't exist
+        const modalHtml = `
+        <div class="modal fade" id="addTargetModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Target</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addTargetForm">
+                            <div class="mb-3">
+                                <label for="add-hostname" class="form-label">Hostname</label>
+                                <input type="text" class="form-control" id="add-hostname" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="add-region" class="form-label">Region</label>
+                                <select class="form-select" id="add-region" required>
+                                    <option value="">Select Region</option>
+                                    <option value="US-East">US-East</option>
+                                    <option value="US-West">US-West</option>
+                                    <option value="EU">EU</option>
+                                    <option value="Asia">Asia</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="add-zone" class="form-label">Zone</label>
+                                <input type="text" class="form-control" id="add-zone" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="add-module-type" class="form-label">Module Type</label>
+                                <select class="form-select" id="add-module-type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="HTTP">HTTP</option>
+                                    <option value="ICMP">ICMP</option>
+                                    <option value="TCP">TCP</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="add-assignees" class="form-label">Assignees</label>
+                                <input type="text" class="form-control" id="add-assignees" required>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="add-enabled" checked>
+                                <label class="form-check-label" for="add-enabled">Enabled</label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="saveAddButton">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        
+        // Append the modal to the body
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        document.body.appendChild(modalContainer);
+        
+        // Initialize the modal
+        const modalElement = document.getElementById('addTargetModal');
+        addTargetModal = new bootstrap.Modal(modalElement);
+        
+        // Add event listener to the save button
+        saveAddButton = document.getElementById('saveAddButton');
+        if (saveAddButton) {
+            saveAddButton.addEventListener('click', handleAddTarget);
+        }
+    }
+    
+    // Reset form if it exists
+    const addForm = document.getElementById('addTargetForm');
+    if (addForm) {
+        addForm.reset();
+    }
     
     // Populate probe dropdown if needed
-    populateProbeDropdown('add-probes');
+    try {
+        populateProbeDropdown('add-probes');
+    } catch (error) {
+        console.warn('Could not populate probe dropdown:', error);
+    }
     
-    addTargetModal.show();
+    // Show the modal
+    try {
+        addTargetModal.show();
+    } catch (error) {
+        console.error('Error showing add target modal:', error);
+        alert('Could not open the Add Target form. Please check the console for details.');
+    }
 }
 
 // Show edit target modal
@@ -264,6 +455,11 @@ function showDeleteConfirmation(targetIds) {
 // Populate probe dropdown
 function populateProbeDropdown(elementId) {
     const dropdown = document.getElementById(elementId);
+    if (!dropdown) {
+        console.warn(`Dropdown element with ID '${elementId}' not found`);
+        return;
+    }
+    
     dropdown.innerHTML = '';
     
     // Add default option that contains all probes
