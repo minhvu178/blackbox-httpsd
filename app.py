@@ -1,4 +1,43 @@
-from flask import Flask, request, jsonify, render_template
+@app.after_request
+def add_header(response):
+    """Ensure API responses have the correct content type header"""
+    if request.path.startswith('/api/'):
+        # Only modify if it's an API endpoint
+        if not response.headers.get('Content-Type'):
+            # Set Content-Type for API responses if not already set
+            response.headers['Content-Type'] = 'application/json'
+    return response# Add dedicated endpoints for Prometheus service discovery
+@app.route('/api/sd/<protocol>', methods=['GET'])
+def prometheus_sd(protocol):
+    """Endpoint specifically for Prometheus service discovery"""
+    model = get_model(protocol)
+    if model is None:
+        return jsonify([]), 200  # Return empty array with 200 status
+    
+    entries = model.query.filter_by(enabled=True).all()
+    
+    result = []
+    for entry in entries:
+        target_address = entry.address
+        if protocol == 'tcp' and entry.port:
+            target_address = f"{entry.address}:{entry.port}"
+            
+        item = {
+            "targets": [target_address],
+            "labels": {
+                "id": str(entry.id),
+                "hostname": entry.hostname,
+                "module": entry.probe_type.lower(),
+                "region": entry.region,
+                "assignees": entry.assignees,
+                "job": f"blackbox_{protocol}"
+            }
+        }
+        result.append(item)
+    
+    response = jsonify(result)
+    response.headers['Content-Type'] = 'application/json'
+    return responsefrom flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, and_, text, func
 import re
@@ -341,34 +380,6 @@ def batch_operation():
 def get_probes():
     probes = Probe.query.all()
     return jsonify([probe.to_dict() for probe in probes])
-
-@app.route('/api/export/prometheus', methods=['GET'])
-def export_prometheus():
-    """Export targets in Prometheus HTTP SD format"""
-    # Get all enabled targets
-    targets = Target.query.filter_by(enabled=True).all()
-    
-    result = []
-    for target in targets:
-        # For each target, create a format that Prometheus HTTP SD expects
-        target_entry = {
-            "targets": [target.address],
-            "labels": {
-                "hostname": target.hostname,
-                "region": target.region,
-                "zone": target.zone,
-                "module": target.probe_type.lower(),  # Convert to lowercase for module name
-                "assignees": target.assignees
-            }
-        }
-        
-        # Add port for TCP targets
-        if target.probe_type == "TCP" and target.port:
-            target_entry["targets"] = [f"{target.address}:{target.port}"]
-        
-        result.append(target_entry)
-    
-    return jsonify(result)
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
