@@ -296,26 +296,33 @@ def add_header(response):
             response.headers['Content-Type'] = 'application/json'
     return response# Helper function to get the model based on protocol
 def get_model(protocol):
-    return {
-        'http': HttpTarget,
-        'icmp': IcmpTarget,
-        'tcp': TcpTarget
-    }.get(protocol.lower())
+    """
+    Returns the appropriate target model class based on protocol.
+    This function needs to use the actual model classes defined in your application.
+    """
+    # Use the Target model since we're using a unified model approach
+    return Target
 
 # Add dedicated endpoints for Prometheus service discovery
 @app.route('/api/sd/<protocol>', methods=['GET'])
 def prometheus_sd(protocol):
     """Endpoint specifically for Prometheus service discovery"""
-    model = get_model(protocol)
-    if model is None:
-        return jsonify([]), 200  # Return empty array with 200 status
-    
-    entries = model.query.filter_by(enabled=True).all()
+    # Get targets for the requested protocol
+    if protocol.lower() in ['http', 'icmp', 'tcp']:
+        # Filter targets by protocol type and enabled status
+        entries = Target.query.filter_by(
+            enabled=True
+        ).filter(
+            Target.probe_type.ilike(f'%{protocol}%')
+        ).all()
+    else:
+        # Return empty array for unsupported protocols
+        return jsonify([]), 200
     
     result = []
     for entry in entries:
         target_address = entry.address
-        if protocol == 'tcp' and entry.port:
+        if protocol.lower() == 'tcp' and entry.port:
             target_address = f"{entry.address}:{entry.port}"
             
         item = {
@@ -323,13 +330,16 @@ def prometheus_sd(protocol):
             "labels": {
                 "id": str(entry.id),
                 "hostname": entry.hostname,
-                "module": entry.probe_type.lower() if hasattr(entry, 'probe_type') else protocol,
+                "module": protocol.lower(),  # Use the protocol as the module
                 "region": entry.region,
                 "assignees": entry.assignees,
-                "job": f"blackbox_{protocol}"
+                "job": f"blackbox_{protocol.lower()}"
             }
         }
         result.append(item)
+    
+    # Log the result to help with debugging
+    print(f"Prometheus SD endpoint for {protocol} returned {len(result)} targets")
     
     response = jsonify(result)
     response.headers['Content-Type'] = 'application/json'
