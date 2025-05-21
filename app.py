@@ -309,7 +309,7 @@ def prometheus_sd_test():
     
     response = jsonify(result)
     response.headers['Content-Type'] = 'application/json'
-    return response@app.after_request
+    return response
 def add_header(response):
     """Ensure API responses have the correct content type header"""
     if request.path.startswith('/api/'):
